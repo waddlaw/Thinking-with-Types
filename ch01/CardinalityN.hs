@@ -19,7 +19,7 @@ type family Cardinality (n :: Nat) (a :: Type) :: Nat where
   Cardinality n (Either a b) = Cardinality n a + Cardinality n b
   Cardinality n (a -> b)     = Cardinality n b ^ Cardinality n a
   Cardinality 0 _            = 0
-  Cardinality n [a]          = 1 + Cardinality (n-1) a * Cardinality (n-1) [a]
+  Cardinality n [a]          = 1 + Cardinality n a * Cardinality (n-1) [a]
 
 {-
 λ natVal (Proxy @(Cardinality 4 [Bool]))
