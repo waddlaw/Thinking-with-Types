@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeApplications      #-}
-module Ch02 where
+module Ch01 where
 
 import Prelude hiding (Bool(..))
 import Data.Proxy

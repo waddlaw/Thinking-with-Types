@@ -1,2 +1,3 @@
 :set -XTypeApplications
 :set -XDataKinds
+:set -XNoStarIsType
