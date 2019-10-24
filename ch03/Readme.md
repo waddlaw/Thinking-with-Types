@@ -90,7 +90,7 @@ invmap id id (T3 h)
   = T3 (id . h . id)
   = T3 h
 
-invmap f2 f2' . invmap f1 f2'
+invmap f2 f2' . invmap f1 f1'
 (LHS)
   = invmap f2 f2' (invmap f1 f1' (T3 h))
   = invmap f2 f2' (T3 (f1 . h . f1'))
