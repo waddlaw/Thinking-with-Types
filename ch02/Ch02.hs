@@ -16,7 +16,7 @@ doSensitiveThings :: Proxy 'Admin -> IO ()
 doSensitiveThings = undefined
 
 type family Or (x :: Bool) (y :: Bool) :: Bool where
-  Or 'True  y = 'True
+  Or 'True  _ = 'True
   Or 'False y = y
 
 {-
