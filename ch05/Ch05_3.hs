@@ -135,7 +135,7 @@ instance All Eq ts => Eq (HList ts) where
   HNil == HNil = True
   (a :# as) == (b :# bs) = a == b && as == bs
 
--- Exercise 5.4-iii
+-- Exercise 5.3-iii
 instance (All Eq ts, All Ord ts) => Ord (HList ts) where
   (<=) :: HList ts -> HList ts -> Bool
   HNil <= HNil = True
@@ -148,7 +148,7 @@ instance (All Show ts) => Show (HList ts) where
 class ShowElems a where
   showElems :: a -> String
 
-instance (All Show ts) => ShowElems (HList ts) where
+instance All Show ts => ShowElems (HList ts) where
   showElems :: HList ts -> String
   showElems HNil = ""
   showElems (x :# HNil) = show x

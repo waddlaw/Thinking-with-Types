@@ -171,4 +171,3 @@ instance Monad Cont where
 Monad law (1): `return a >>= k  =  k a`
 Monad law (2): `m >>= return  =  m`
 Monad law (3): `m >>= (\x -> k x >>= h)  =  (m >>= k) >>= h`
-

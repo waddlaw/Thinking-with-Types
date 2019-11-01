@@ -39,9 +39,9 @@ cont :: a -> (forall r. (a -> r) -> r)
 cont a = \callback -> callback a
 
 runCont :: (forall r. (a -> r) -> r) -> a
-runCont f =
-  let callback = id
-   in f callback
+runCont f = f id
+  -- let callback = id
+  --  in f callback
 
 newtype Cont a = Cont { unCont :: forall r. (a -> r) -> r }
 
