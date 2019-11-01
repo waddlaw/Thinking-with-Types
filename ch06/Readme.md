@@ -133,7 +133,10 @@ instance Applicative Cont where
   (<*>) :: Cont (a -> b) -> Cont a -> Cont b
   Cont f <*> a = fmap (f id) a
 
-  -- Cont f <*> Cont a = Cont $ \callback -> callback (f c)
+  -- Cont f <*> Cont a = Cont $ \br -> f $ \ab -> a $ br . ab
+  -- f :: (forall r. ((a->b) -> r) -> r)
+  -- a :: (forall r. (a      -> r) -> r)
+  -- <goal> :: (forall r. (b -> r) -> r)
 ```
 
 Applicative law (identity): `pure id <*> Cont c = Cont c`
@@ -168,6 +171,45 @@ instance Monad Cont where
   Cont a >>= f = f (a id)
 ```
 
-Monad law (1): `return a >>= k  =  k a`
-Monad law (2): `m >>= return  =  m`
-Monad law (3): `m >>= (\x -> k x >>= h)  =  (m >>= k) >>= h`
+Monad law (1): `return a >>= k = k a`
+
+```haskell
+  return a >>= k
+= (Cont $ \callback -> callback a) >>= k
+= k ((\callback -> callback a) id)
+= k (id a)
+= k a
+```
+
+Monad law (2): `m >>= return = m`
+
+```haskell
+  m >>= return
+= Cont c >>= return
+= return (c id)
+= Cont $ \callback -> callback (c id)
+```
+
+Monad law (3): `m >>= (\x -> k x >>= h) = (m >>= k) >>= h`
+
+模範解答
+
+```haskell
+instance Monad Cont where
+  Cont m >>= f = Cont $ \c ->
+    m $ \a ->
+      unCont (f a) c
+```
+
+Monad law (2): `m >>= return = m`
+
+```haskell
+  m >>= return
+= Cont k >>= return
+= Cont $ \c -> k $ \a -> unCont (return a) c
+= Cont $ \c -> k $ \a -> unCont (Cont $ \callback -> callback a) c
+= Cont $ \c -> k $ \a -> (\callback -> callback a) c
+= Cont $ \c -> k $ \a -> c a
+= Cont $ \c -> k c
+= Cont k
+```
