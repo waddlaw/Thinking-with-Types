@@ -85,3 +85,6 @@ type MonoidAndEq a = (Monoid a, Eq a)
 
 class    (Monoid a, Eq a) => MonoidEq a
 instance (Monoid a, Eq a) => MonoidEq a
+
+foo :: Has MonoidEq
+foo = Has [True]

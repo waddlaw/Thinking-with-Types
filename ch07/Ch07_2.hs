@@ -35,7 +35,7 @@ modifySTRef ref f = do
 runST :: (forall s. ST s a) -> a
 runST = unsafeRunST
 
-runST' :: (forall s. ST s (STRef s Bool)) -> StRef s Bool
+-- runST' :: (forall s. ST s (STRef s Bool)) -> STRef s Bool
 
 safeExample :: ST s String
 safeExample = do
