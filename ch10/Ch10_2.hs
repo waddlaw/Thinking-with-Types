@@ -131,6 +131,10 @@ type instance Eval (Map f '(a, b)) = '(a, Eval (f b))
 λ> :k! Eval (Map Snd '(0, '(1,2)))
 Eval (Map Snd '(0, '(1,2))) :: (Nat, Nat)
 = '(0, 2)
+
+λ> :k! Eval (Fmap Eq Maybe)
+Eval (Fmap Eq Maybe) :: Constraint
+= Eq (Eval Maybe)
 -}
 
 data Fmap :: (a -> b) -> Exp a -> Exp b
