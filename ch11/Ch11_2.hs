@@ -118,13 +118,22 @@ r2 :: OpenProduct Maybe '[ '("another", Bool), '("key", [Char])]
 
 λ> :t delete (Key @"key") r2
 delete (Key @"key") r2 :: OpenProduct Maybe '[ '("another", Bool)]
+
 λ> :t delete (Key @"another") r2
 delete (Key @"another") r2
   :: OpenProduct Maybe '[ '("key", [Char])]
+
+λ> r3 = insert (Key @"name") (Just "aaa") r2
+λ> :t r3
+r2 :: OpenProduct  Maybe '[ '("name", [Char]), '("another", Bool), '("key", [Char])]
+
+λ> get (Key @"key") $ delete (Key @"another") r3
+Just "hello"
 -}
+
 delete :: forall key ts t f. KnownNat (FindElem key ts)
   => Key key -> OpenProduct f ts -> OpenProduct f (Eval (DeleteElem key ts))
-delete _ (OpenProduct v) =  OpenProduct v1
+delete _ (OpenProduct v) =  OpenProduct (v1 <> V.tail v2)
   where
     (v1, v2) = V.splitAt (findElem @key @ts) v
 
@@ -140,3 +149,6 @@ get #key result :: Maybe [Char]
 λ> get #key result
 Just "hello"
 -}
+
+r2 = insert (Key @"another") (Just True) result
+r3 = insert (Key @"name") (Just "aaa") r2

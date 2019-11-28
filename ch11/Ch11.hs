@@ -57,7 +57,7 @@ findElem :: forall t ts. Member t ts => Int
 findElem = fromIntegral . natVal $ Proxy @(Eval (FindElem t ts))
 
 {-
--- 実際には Show インスタンスはまだない
+-- 実際には Show インスタンスはまだない.定義しようと思ったけど普通には無理だった。(実力不足なだけかも)
 λ> inj @Maybe @Int @'[Bool, Int] Nothing
 UnsafeOpenSum 1 Nothing
 
