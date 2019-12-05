@@ -176,3 +176,21 @@ type family RequireUniqueKey
     ':$$: 'Text "Consider using `update' "
     ':<>: 'Text "instead of `insert'."
     )
+
+{-
+λ> r1 = insert (Key @"key") (Just "hello") nil
+λ> r2 = insert (Key @"another") (Just True) result
+λ> r3 = insert (Key @"another") (Just False) r2
+
+<interactive>:7:6: error:
+    • Attempting to add a field name `another' with type Bool to an OpenProduct.
+      But the OpenProduct already has a field `another' with type FromMaybe
+                                                                    Stuck
+                                                                  =<< Map
+                                                                        Snd
+                                                                        ('Just '("another", Bool))
+      Consider using `update' instead of `insert'.
+    • In the expression: insert (Key @"another") (Just False) r2
+      In an equation for ‘r3’:
+          r3 = insert (Key @"another") (Just False) r2
+-}
