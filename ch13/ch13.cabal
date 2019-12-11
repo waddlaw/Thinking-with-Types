@@ -1,0 +1,16 @@
+cabal-version:       >=1.10
+name:                ch13
+version:             0.1.0.0
+author:              waddlaw
+maintainer:          ingronze@gmail.com
+build-type:          Simple
+
+library jsonschema
+  exposed-modules:     JSONSchema, InspectionTesting
+  build-depends:       base >=4.12 && <4.13, aeson, text, mtl, vector, bytestring, aeson-pretty, inspection-testing
+  default-language:    Haskell2010
+
+library kan
+  exposed-modules:     Ch13_5
+  build-depends:       base >=4.12 && <4.13, kan-extensions
+  default-language:    Haskell2010

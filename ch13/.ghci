@@ -1,0 +1,5 @@
+:set -XTypeApplications
+:set -XDataKinds
+:set -XNoStarIsType
+import qualified Data.ByteString.Lazy.Char8 as LC8
+import Data.Aeson.Encode.Pretty (encodePretty)
