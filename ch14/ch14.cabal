@@ -1,0 +1,17 @@
+cabal-version:       >=1.10
+name:                ch14
+version:             0.1.0.0
+author:              waddlaw
+maintainer:          ingronze@gmail.com
+build-type:          Simple
+
+library libch14
+  exposed-modules:     IxMonad
+  build-depends:       base >=4.12 && <4.13, indexed, do-notation
+  default-language:    Haskell2010
+
+library linear
+  exposed-modules:     Linear
+  other-modules: IxMonad
+  build-depends:       base >=4.12 && <4.13, indexed, do-notation, libch14, first-class-families
+  default-language:    Haskell2010
