@@ -14,3 +14,13 @@ library sing
   exposed-modules:     Sing
   build-depends:       base >=4.12 && <4.13
   default-language:    Haskell2010
+
+library ch15_4
+  exposed-modules:     Ch15_4
+  build-depends:       base >=4.12 && <4.13, singletons
+  default-language:    Haskell2010
+
+library deppairs
+  exposed-modules:     DepPairs
+  build-depends:       base >=4.12 && <4.13, aeson, constraints, singletons
+  default-language:    Haskell2010

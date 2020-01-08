@@ -7,6 +7,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE PolyKinds #-}
 module Main (main) where
 
 import Control.Monad.Trans.Writer
@@ -18,12 +19,12 @@ data SBool (b :: Bool) where
   STrue  :: SBool 'True
   SFalse :: SBool 'False
 
-fromSBool :: SBool b -> Bool
+fromSBool :: forall (b::Bool). SBool b -> Bool
 fromSBool STrue = True
 fromSBool SFalse = False
 
 data SomeSBool where
-  SomeSBool :: SBool b -> SomeSBool
+  SomeSBool :: forall (b::Bool). SBool b -> SomeSBool
 
 withSomeSBool :: SomeSBool -> (forall (b :: Bool). SBool b -> r) -> r
 withSomeSBool (SomeSBool s) f = f s
@@ -80,4 +81,40 @@ True
 hello world
 λ> main
 False
+-}
+
+data SMaybe :: Maybe Bool -> Type where
+  SNothing :: SMaybe 'Nothing
+  SJust    :: forall (a::Bool). SBool a -> SMaybe ('Just a)
+
+{-
+λ> fromSMaybe SNothing
+Nothing
+
+λ> fromSMaybe $ SJust STrue
+Just True
+-}
+fromSMaybe :: forall (a::Maybe Bool). SMaybe a -> Maybe Bool
+fromSMaybe SNothing  = Nothing
+fromSMaybe (SJust a) = Just (fromSBool a)
+
+data SomeSMaybe where
+  SomeSMaybe :: forall (a::Maybe Bool). SMaybe a -> SomeSMaybe
+
+withSomeSMaybe :: SomeSMaybe -> (forall (a :: Maybe Bool). SMaybe a -> r) -> r
+withSomeSMaybe (SomeSMaybe s) f = f s
+
+toSMaybe :: Maybe Bool -> SomeSMaybe
+toSMaybe Nothing = SomeSMaybe SNothing
+toSMaybe (Just a) = withSomeSBool (toSBool a) (SomeSMaybe . SJust)
+
+{-
+λ> withSomeSMaybe (toSMaybe $ Just True) fromSMaybe
+Just True
+
+λ> withSomeSMaybe (toSMaybe $ Just False) fromSMaybe
+Just False
+
+λ> withSomeSMaybe (toSMaybe Nothing) fromSMaybe
+Nothing
 -}

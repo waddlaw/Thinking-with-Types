@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Ch15. Dependent Types</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+        <link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+    </head>
+    <body class="vscode-light">
+        <h1 id="ch15-dependent-types">Ch15. Dependent Types</h1>
+<h2 id="datakinds">DataKinds</h2>
+<p><code>DataKinds</code> によって型がカインドに昇格 (Promote) する</p>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>型</th>
+<th>Kind</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>True, False</td>
+<td>Bool</td>
+<td>Type</td>
+</tr>
+</tbody>
+</table>
+<p><code>DataKinds</code> を有効にした後</p>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>型</th>
+<th>Kind</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>True, False</td>
+<td>Bool</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'True, (True)</td>
+<td>Bool</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'False, (False)</td>
+<td>Bool</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>型とカインドは同じ名前空間を持つ</li>
+<li><code>'</code> は名前が被らなければ付けなくても良いが、個人的には常時付けた方が良いと思う</li>
+</ul>
+<pre><code class="language-hs"><div>λ&gt; :set -<span class="hljs-type">XDataKinds</span>
+
+λ&gt; <span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">MyBool</span> = <span class="hljs-type">MyTrue</span> | <span class="hljs-type">MyFalse</span></span>
+
+λ&gt; :k <span class="hljs-type">MyTrue</span>
+<span class="hljs-type">MyTrue</span> :: <span class="hljs-type">MyBool</span>
+
+λ&gt; :k '<span class="hljs-type">MyTrue</span>
+'<span class="hljs-type">MyTrue</span> :: <span class="hljs-type">MyBool</span>
+</div></code></pre>
+<h2 id="type-kind">Type kind</h2>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>型</th>
+<th>Kind</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-</td>
+<td>(-&gt;)</td>
+<td>Type -&gt; Type -&gt; Type</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Haskell の値は <code>Type</code> カインドを持つ型のみ！</li>
+<li><code>(-&gt;) :: Type -&gt; Type -&gt; Type</code>
+<ul>
+<li><code>(-&gt;)</code> には <code>Type</code> カインドを持つ型の値しか適用できない！</li>
+</ul>
+</li>
+</ul>
+<h2 id="singleton-%e3%81%a8%e3%81%af%e4%bd%95%e3%81%8b">singleton とは何か</h2>
+<p><code>singleton</code> というのは <code>()</code> 型のように型に対して値が1つしか存在しない型のこと。</p>
+<p>値が1つしかないため、型がわかれば自動的に値が決まる。</p>
+<pre><code class="language-hs"><div><span class="hljs-title">f</span> :: ()
+<span class="hljs-title">f</span> = ()
+
+<span class="hljs-title">g</span> :: <span class="hljs-type">Bool</span>
+<span class="hljs-title">g</span> = ??? <span class="hljs-comment">-- この場合 True, False の両方の可能性があるため値が何かというのは型を見るだけでは決定できない</span>
+</div></code></pre>
+<p>すぐに思いつくのは以下のような書き方だけども、これは2つの理由でうまく行かない。</p>
+<pre><code class="language-hs"><div><span class="hljs-title">t</span> :: '<span class="hljs-type">True</span>
+<span class="hljs-title">t</span> = <span class="hljs-type">True</span>
+</div></code></pre>
+<ol>
+<li>Haskell の値は <code>Type</code> カインドを持たなければならないが、<code>Bool</code> カインドである</li>
+<li><code>True</code> データコンストラクタは <code>Bool</code> 型の値であり、<code>'True</code> 型の値ではない。</li>
+</ol>
+<p>この問題を解決するために <code>SBool</code> と <code>fromSBool</code> が必要となる。</p>
+<h2 id="gadts">GADTs</h2>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">MyMaybe</span> a</span>
+  = <span class="hljs-type">MyJust</span> a
+  | <span class="hljs-type">MyNothing</span>
+
+<span class="hljs-comment">-- GADTs で書き直すと</span>
+<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">MyMaybe</span> a where</span>
+  <span class="hljs-type">MyJust</span>    :: a -&gt; <span class="hljs-type">MyMaybe</span> a
+  <span class="hljs-type">MyNothing</span> :: <span class="hljs-type">MyMaybe</span> a
+</div></code></pre>
+<p>ここで型変数のスコープに注意。</p>
+<p><code>Maybe a</code> の <code>a</code> はスコープを持ちません。そのため以下のように書いても良い</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">MyMaybe</span> :: <span class="hljs-type">Type</span> -&gt; <span class="hljs-type">Type</span> where</span>
+  <span class="hljs-type">MyJust</span>    :: a -&gt; <span class="hljs-type">MyMaybe</span> a
+  <span class="hljs-type">MyNothing</span> :: <span class="hljs-type">MyMaybe</span> a
+</div></code></pre>
+<p>さらに <code>forall</code> を明示的に追加するとこうなる。</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">MyMaybe</span> :: <span class="hljs-type">Type</span> -&gt; <span class="hljs-type">Type</span> where</span>
+  <span class="hljs-type">MyJust</span>    :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Type</span>). a -&gt; <span class="hljs-type">MyMaybe</span> a
+  <span class="hljs-type">MyNothing</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Type</span>). <span class="hljs-type">MyMaybe</span> a
+</div></code></pre>
+<ul>
+<li><a href="https://stackoverflow.com/questions/40787526/are-type-variables-in-gadt-heads-meaningful">Are type variables in GADT heads meaningful?</a></li>
+<li><a href="https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#declaring-data-types-with-explicit-constructor-signatures">9.4.7. Declaring data types with explicit constructor signatures</a></li>
+</ul>
+<h2 id="152-bool-%e3%81%ae%e4%be%8b">15.2 Bool の例</h2>
+<iframe style="border: none;" width="800" height="450" src="https://www.figma.com/embed?embed_host=share&url=https%3A%2F%2Fwww.figma.com%2Ffile%2FAgquwTzP53l6rMGqvqNRjV%2FCh15%3Fnode-id%3D34%253A0" allowfullscreen></iframe>
+<p><code>SBool</code> の <code>S</code> は <code>Singleton</code> の意味。</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SBool</span> (<span class="hljs-title">a</span> :: <span class="hljs-type">Bool</span>) where</span>
+  <span class="hljs-type">STrue</span>  :: <span class="hljs-type">SBool</span> '<span class="hljs-type">True</span>
+  <span class="hljs-type">SFalse</span> :: <span class="hljs-type">SBool</span> '<span class="hljs-type">False</span>
+</div></code></pre>
+<p><code>SBool</code> の定義の後</p>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>型</th>
+<th>Kind</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>True, False</td>
+<td>Bool</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'True</td>
+<td>Bool</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'False</td>
+<td>Bool</td>
+</tr>
+<tr>
+<td>-</td>
+<td>SBool</td>
+<td>Bool -&gt; Type</td>
+</tr>
+<tr>
+<td>STrue</td>
+<td>SBool 'True</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>SFalse</td>
+<td>SBool 'False</td>
+<td>Type</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bool-%e3%81%a8-sbool-%e3%81%8c%e5%90%8c%e5%9e%8b">Bool と SBool が同型</h3>
+<p><code>Bool -&gt; SBool</code>, <code>SBool -&gt; Bool</code> の関数が作れるのであれば <code>Bool</code> と <code>SBool</code> は同型。</p>
+<pre><code class="language-hs"><div><span class="hljs-title">fromSBool</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Bool</span>). <span class="hljs-type">SBool</span> a -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">fromSBool</span> <span class="hljs-type">STrue</span>  = <span class="hljs-type">True</span>
+<span class="hljs-title">fromSBool</span> <span class="hljs-type">SFalse</span> = <span class="hljs-type">False</span>
+
+<span class="hljs-comment">-- この型では定義不可能 (SBool の a を消したい)</span>
+<span class="hljs-title">toSBool</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Bool</span>). <span class="hljs-type">Bool</span> -&gt; <span class="hljs-type">SBool</span> a
+<span class="hljs-title">toSBool</span> <span class="hljs-type">True</span>  = <span class="hljs-type">STrue</span>   <span class="hljs-comment">-- STrue  :: SBool 'True</span>
+<span class="hljs-title">toSBool</span> <span class="hljs-type">False</span> = <span class="hljs-type">SFalse</span>  <span class="hljs-comment">-- SFalse :: SBool 'False</span>
+</div></code></pre>
+<p>この問題を解決するために存在型 <code>SomeSBool</code> を定義する</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SomeSBool</span> where</span>
+  <span class="hljs-type">SomeSBool</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Bool</span>). <span class="hljs-type">SBool</span> a -&gt; <span class="hljs-type">SomeSBool</span>
+
+<span class="hljs-title">toSBool</span> :: <span class="hljs-type">Bool</span> -&gt; <span class="hljs-type">SomeSBool</span>
+<span class="hljs-title">toSBool</span> <span class="hljs-type">True</span>  = <span class="hljs-type">SomeSBool</span> <span class="hljs-type">STrue</span>
+<span class="hljs-title">toSBool</span> <span class="hljs-type">False</span> = <span class="hljs-type">SomeSBool</span> <span class="hljs-type">SFalse</span>
+</div></code></pre>
+<p>ここで <code>toSBool</code> と <code>fromSBool</code> の型を確認してみると</p>
+<pre><code class="language-hs"><div><span class="hljs-title">toSBool</span> :: <span class="hljs-type">Bool</span> -&gt; <span class="hljs-type">SomeSBool</span>
+<span class="hljs-title">fromSBool</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Bool</span>). <span class="hljs-type">SBool</span> a -&gt; <span class="hljs-type">Bool</span>
+</div></code></pre>
+<p><code>SomeSBool</code> と <code>SBool a</code> という異なる型になっているので、補助関数 <code>withSomeSBool</code> を定義する。この関数は <code>Rank2</code> の関数である。</p>
+<pre><code class="language-hs"><div><span class="hljs-title">withSomeSBool</span> :: <span class="hljs-type">SomeSBool</span> -&gt; (<span class="hljs-keyword">forall</span> (a :: <span class="hljs-type">Bool</span>). <span class="hljs-type">SBool</span> a -&gt; r) -&gt; r
+<span class="hljs-title">withSomeSBool</span> (<span class="hljs-type">SomeSBool</span> s) f = f s
+</div></code></pre>
+<p>この関数を組み合わせれば <code>Bool</code> 値を型レベルに Promote し、計算した結果を Demote して返す関数 <code>matchBool</code> が定義できる。</p>
+<pre><code class="language-hs"><div><span class="hljs-title">matchBool</span> :: (<span class="hljs-keyword">forall</span> (a :: <span class="hljs-type">Bool</span>). <span class="hljs-type">SBool</span> a -&gt; r) -&gt; <span class="hljs-type">Bool</span> -&gt; r
+<span class="hljs-title">matchBool</span> f b = withSomeSBool (toSBool b) f
+</div></code></pre>
+<p>これは以下のように使う</p>
+<pre><code class="language-hs"><div>λ&gt; matchSBool fromSBool <span class="hljs-type">True</span>
+<span class="hljs-type">True</span>
+λ&gt; matchSBool fromSBool <span class="hljs-type">False</span>
+<span class="hljs-type">False</span>
+
+<span class="hljs-comment">--</span>
+<span class="hljs-title">showSBool</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Bool</span>). <span class="hljs-type">SBool</span> a -&gt; <span class="hljs-type">String</span>
+<span class="hljs-title">showSBool</span> <span class="hljs-type">STrue</span>  = <span class="hljs-string">"True"</span>
+<span class="hljs-title">showSBool</span> <span class="hljs-type">SFalse</span> = <span class="hljs-string">"False
+
+λ&gt; matchSBool showSBool True
+"</span><span class="hljs-type">True</span><span class="hljs-string">"
+λ&gt; matchSBool showSBool False
+"</span><span class="hljs-type">False</span><span class="hljs-string">"
+</span></div></code></pre>
+<h2 id="maybe-bool-%e3%82%92%e8%80%83%e3%81%88%e3%82%88%e3%81%86">Maybe Bool を考えよう</h2>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SMaybe</span> :: <span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span> -&gt; <span class="hljs-type">Type</span> where</span>
+  <span class="hljs-type">SNothing</span> :: <span class="hljs-type">SMaybe</span> '<span class="hljs-type">Nothing</span>
+  <span class="hljs-type">SJust</span>    :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Bool</span>). <span class="hljs-type">SBool</span> a -&gt; <span class="hljs-type">SMaybe</span> ('<span class="hljs-type">Just</span> a)
+</div></code></pre>
+<p>ここでのポイントは <code>SJust</code> の <code>a::Bool</code> である。</p>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>型</th>
+<th>Kind</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nothing, Just True, Just False</td>
+<td>Maybe Bool</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'Nothing</td>
+<td>Maybe a</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'Just</td>
+<td>a -&gt; Maybe a</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'Just 'True</td>
+<td>Maybe Bool</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'Just 'False</td>
+<td>Maybe Bool</td>
+</tr>
+<tr>
+<td>SNothing</td>
+<td>SMaybe 'Nothing</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>SJust STrue</td>
+<td>SMaybe ('Just 'True)</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>SJust SFalse</td>
+<td>SMaybe ('Just 'False)</td>
+<td>Type</td>
+</tr>
+</tbody>
+</table>
+<p>まずは、さきほどと同じく <code>fromSMaybe</code> を定義する。</p>
+<p><code>SJust a</code> の値 <code>a</code> の型は <code>a::Bool</code> なので、<code>fromSBool</code> が適用できる。</p>
+<pre><code class="language-hs"><div><span class="hljs-title">fromSMaybe</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>). <span class="hljs-type">SMaybe</span> a -&gt; <span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>
+<span class="hljs-title">fromSMaybe</span> <span class="hljs-type">SNothing</span>  = <span class="hljs-type">Nothing</span>
+<span class="hljs-title">fromSMaybe</span> (<span class="hljs-type">SJust</span> a) = <span class="hljs-type">Just</span> (fromSBool a)
+</div></code></pre>
+<p>具体的には以下のように使う。</p>
+<pre><code class="language-hs"><div>λ&gt; fromSMaybe <span class="hljs-type">SNothing</span>
+<span class="hljs-type">Nothing</span>
+λ&gt; fromSMaybe (<span class="hljs-type">SJust</span> <span class="hljs-type">STrue</span>)
+<span class="hljs-type">Just</span> <span class="hljs-type">True</span>
+λ&gt; fromSMaybe (<span class="hljs-type">SJust</span> <span class="hljs-type">SFalse</span>)
+<span class="hljs-type">Just</span> <span class="hljs-type">False</span>
+λ&gt; fromSMaybe (<span class="hljs-type">SJust</span> <span class="hljs-type">False</span>)
+
+&lt;interactive&gt;:<span class="hljs-number">37</span>:<span class="hljs-number">19</span>: error:
+    • <span class="hljs-type">Couldn't</span> match expected <span class="hljs-class"><span class="hljs-keyword">type</span> ‘<span class="hljs-type">SBool</span> a0’ with actual <span class="hljs-keyword">type</span> ‘<span class="hljs-type">Bool</span>’</span>
+    • <span class="hljs-type">In</span> the first argument <span class="hljs-keyword">of</span> ‘<span class="hljs-type">SJust</span>’, namely ‘<span class="hljs-type">False</span>’
+      <span class="hljs-type">In</span> the first argument <span class="hljs-keyword">of</span> ‘fromSMaybe’, namely ‘(<span class="hljs-type">SJust</span> <span class="hljs-type">False</span>)’
+      <span class="hljs-type">In</span> the expression: fromSMaybe (<span class="hljs-type">SJust</span> <span class="hljs-type">False</span>)
+</div></code></pre>
+<p>次に <code>SomeSMaybe</code> を定義する。</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SomeSMaybe</span> where</span>
+  <span class="hljs-type">SomeSMaybe</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>). <span class="hljs-type">SMaybe</span> a -&gt; <span class="hljs-type">SomeSMaybe</span>
+</div></code></pre>
+<p>ここで <code>toSMaybe</code> を以下のように定義したくなるかもしれない</p>
+<pre><code class="language-hs"><div><span class="hljs-title">toSMaybe</span> :: <span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span> -&gt; <span class="hljs-type">SomeSMaybe</span>
+<span class="hljs-title">toSMaybe</span> <span class="hljs-type">Nothing</span> = <span class="hljs-type">SomeSMaybe</span> <span class="hljs-type">SNothing</span>
+<span class="hljs-title">toSMaybe</span> (<span class="hljs-type">Just</span> a) = <span class="hljs-type">SomeSMaybe</span> (<span class="hljs-type">SJust</span> $ toSBool a)
+</div></code></pre>
+<p>しかし、これはうまく行かない。</p>
+<p>なぜなら <code>toSBool a</code> の型は <code>SomeSBool</code> であり、<code>SJust</code> が期待する <code>SBool a</code> ではないからである。</p>
+<p>そのため <code>toSMaybe</code> の正しい定義は以下のようになる。</p>
+<pre><code class="language-hs"><div><span class="hljs-title">toSMaybe</span> :: <span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span> -&gt; <span class="hljs-type">SomeSMaybe</span>
+<span class="hljs-title">toSMaybe</span> <span class="hljs-type">Nothing</span> = <span class="hljs-type">SomeSMaybe</span> <span class="hljs-type">SNothing</span>
+<span class="hljs-title">toSMaybe</span> (<span class="hljs-type">Just</span> a) = withSomeSBool (toSBool a) (<span class="hljs-type">SomeSMaybe</span> . <span class="hljs-type">SJust</span>)
+</div></code></pre>
+<p>最後に <code>withSomeSMaybe</code> を定義する。</p>
+<pre><code class="language-hs"><div><span class="hljs-title">withSomeSMaybe</span> :: <span class="hljs-type">SomeSMaybe</span> -&gt; (<span class="hljs-keyword">forall</span> (a :: <span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>). <span class="hljs-type">SMaybe</span> a -&gt; r) -&gt; r
+<span class="hljs-title">withSomeSMaybe</span> (<span class="hljs-type">SomeSMaybe</span> s) f = f s
+</div></code></pre>
+<p>実際に動作確認してみよう。</p>
+<pre><code class="language-hs"><div>λ&gt; withSomeSMaybe (toSMaybe $ <span class="hljs-type">Just</span> <span class="hljs-type">True</span>) fromSMaybe
+<span class="hljs-type">Just</span> <span class="hljs-type">True</span>
+
+λ&gt; withSomeSMaybe (toSMaybe $ <span class="hljs-type">Just</span> <span class="hljs-type">False</span>) fromSMaybe
+<span class="hljs-type">Just</span> <span class="hljs-type">False</span>
+
+λ&gt; withSomeSMaybe (toSMaybe <span class="hljs-type">Nothing</span>) fromSMaybe
+<span class="hljs-type">Nothing</span>
+</div></code></pre>
+<h2 id="153-%e6%8a%bd%e8%b1%a1%e5%8c%96%e3%81%97%e3%82%88%e3%81%86">15.3 抽象化しよう</h2>
+<p><code>Bool</code> や <code>Maybe Bool</code> の例のように個別具体的に</p>
+<ul>
+<li><code>S_XXX</code></li>
+<li><code>fromS_XXX</code></li>
+<li><code>SomeS_XXX</code></li>
+<li><code>toS_XXX</code></li>
+<li><code>withSomeS_XXX</code></li>
+</ul>
+<p>のような関数を定義するのも良いかもしれないが、これらは非常によく似た定義になっているため、抽象化できそうだ。</p>
+<p>まずは完全な定義を示す。</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-keyword">family</span> <span class="hljs-type">Sing</span> (<span class="hljs-title">a</span>::<span class="hljs-title">k</span>)</span>
+
+<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SomeSing</span> :: <span class="hljs-type">Type</span> -&gt; <span class="hljs-type">Type</span> where</span>
+  <span class="hljs-type">SomeSing</span> :: <span class="hljs-keyword">forall</span> (a::k). <span class="hljs-type">Sing</span> a -&gt; <span class="hljs-type">SomeSing</span> k
+
+<span class="hljs-title">withSomeSing</span> :: <span class="hljs-type">SomeSing</span> k -&gt; (<span class="hljs-keyword">forall</span> (a::k). <span class="hljs-type">Sing</span> a -&gt; r) -&gt; r
+<span class="hljs-title">withSomeSing</span> (<span class="hljs-type">SomeSing</span> s) f = f s
+<span class="hljs-class">
+<span class="hljs-keyword">class</span> <span class="hljs-type">SingKind</span> k <span class="hljs-keyword">where</span></span>
+  <span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Demote</span> k = r | r -&gt; k</span>
+  toSing   :: <span class="hljs-type">Demote</span> k -&gt; <span class="hljs-type">SomeSing</span> k
+  fromSing :: <span class="hljs-type">Sing</span> (a::k) -&gt; <span class="hljs-type">Demote</span> k
+</div></code></pre>
+<h3 id="1-sing-%e5%9e%8b">(1) Sing 型</h3>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SBool</span> (<span class="hljs-title">a</span> :: <span class="hljs-type">Bool</span>) where</span>
+  <span class="hljs-type">STrue</span>  :: <span class="hljs-type">SBool</span> '<span class="hljs-type">True</span>
+  <span class="hljs-type">SFalse</span> :: <span class="hljs-type">SBool</span> '<span class="hljs-type">False</span>
+
+<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SMaybe</span> :: (<span class="hljs-title">a</span> :: <span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>) where</span>
+  <span class="hljs-type">SNothing</span> :: <span class="hljs-type">SMaybe</span> '<span class="hljs-type">Nothing</span>
+  <span class="hljs-type">SJust</span>    :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Bool</span>). <span class="hljs-type">SBool</span> a -&gt; <span class="hljs-type">SMaybe</span> ('<span class="hljs-type">Just</span> a)
+</div></code></pre>
+<p>具体例の2つを見比べたときに異なる部分というのは <code>a</code> のカインドとデータコンストラクタだけなので、以下のように抽象化することは正しそう。</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-keyword">family</span> <span class="hljs-type">Sing</span> (<span class="hljs-title">a</span>::<span class="hljs-title">k</span>)</span>
+</div></code></pre>
+<h3 id="2-somesing-%e5%9e%8b">(2) SomeSing 型</h3>
+<p>ここはかなり大事</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SomeSBool</span> where</span>
+  <span class="hljs-type">SomeSBool</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Bool</span>). <span class="hljs-type">SBool</span> a -&gt; <span class="hljs-type">SomeSBool</span>
+
+<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SomeSMaybe</span> where</span>
+  <span class="hljs-type">SomeSMaybe</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>). <span class="hljs-type">SMaybe</span> a -&gt; <span class="hljs-type">SomeSMaybe</span>
+</div></code></pre>
+<p>上記の定義を素朴に抽象化すれば以下のような定義になりそう。</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SomeSing</span> where</span>
+  <span class="hljs-type">SomeSing</span> :: <span class="hljs-keyword">forall</span> (a::k). <span class="hljs-type">Sing</span> a -&gt; <span class="hljs-type">SomeSing</span>
+</div></code></pre>
+<p>しかし、これでは <code>k</code> の制約が無いため上手くいかない。</p>
+<p>その解決策として、以下のように <code>k</code> を <code>SomeSing</code> に持たせておけば <code>(a::k)</code> の <code>k</code> を決定できる。</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SomeSing</span> :: <span class="hljs-type">Type</span> -&gt; <span class="hljs-type">Type</span> where</span>
+  <span class="hljs-type">SomeSing</span> :: <span class="hljs-keyword">forall</span> (a::k). <span class="hljs-type">Sing</span> a -&gt; <span class="hljs-type">SomeSing</span> k
+</div></code></pre>
+<h3 id="3-withsomesing-%e9%96%a2%e6%95%b0">(3) withSomeSing 関数</h3>
+<pre><code class="language-hs"><div><span class="hljs-title">withSomeSBool</span> :: <span class="hljs-type">SomeSBool</span> -&gt; (<span class="hljs-keyword">forall</span> (a :: <span class="hljs-type">Bool</span>). <span class="hljs-type">SBool</span> a -&gt; r) -&gt; r
+<span class="hljs-title">withSomeSBool</span> (<span class="hljs-type">SomeSBool</span> s) f = f s
+
+<span class="hljs-title">withSomeSMaybe</span> :: <span class="hljs-type">SomeSMaybe</span> -&gt; (<span class="hljs-keyword">forall</span> (a :: <span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>). <span class="hljs-type">SMaybe</span> a -&gt; r) -&gt; r
+<span class="hljs-title">withSomeSMaybe</span> (<span class="hljs-type">SomeSMaybe</span> s) f = f s
+</div></code></pre>
+<p>これは自明です。</p>
+<pre><code class="language-hs"><div><span class="hljs-title">withSomeSing</span> :: <span class="hljs-type">SomeSing</span> k -&gt; (<span class="hljs-keyword">forall</span> (a::k). <span class="hljs-type">Sing</span> a -&gt; r) -&gt; r
+<span class="hljs-title">withSomeSing</span> (<span class="hljs-type">SomeSing</span> s) f = f s
+</div></code></pre>
+<h3 id="4-singkind-%e5%9e%8b%e3%82%af%e3%83%a9%e3%82%b9">(4) SingKind 型クラス</h3>
+<pre><code class="language-hs"><div><span class="hljs-title">toSBool</span> :: <span class="hljs-type">Bool</span> -&gt; <span class="hljs-type">SomeSBool</span>
+<span class="hljs-title">toSBool</span> <span class="hljs-type">True</span>  = <span class="hljs-type">SomeSBool</span> <span class="hljs-type">STrue</span>
+<span class="hljs-title">toSBool</span> <span class="hljs-type">False</span> = <span class="hljs-type">SomeSBool</span> <span class="hljs-type">SFalse</span>
+
+<span class="hljs-title">fromSBool</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Bool</span>). <span class="hljs-type">SBool</span> a -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">fromSBool</span> <span class="hljs-type">STrue</span>  = <span class="hljs-type">True</span>
+<span class="hljs-title">fromSBool</span> <span class="hljs-type">SFalse</span> = <span class="hljs-type">False</span>
+
+<span class="hljs-title">toSMaybe</span> :: <span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span> -&gt; <span class="hljs-type">SomeSMaybe</span>
+<span class="hljs-title">toSMaybe</span> <span class="hljs-type">Nothing</span> = <span class="hljs-type">SomeSMaybe</span> <span class="hljs-type">SNothing</span>
+<span class="hljs-title">toSMaybe</span> (<span class="hljs-type">Just</span> a) = withSomeSBool (toSBool a) (<span class="hljs-type">SomeSMaybe</span> . <span class="hljs-type">SJust</span>)
+
+<span class="hljs-title">fromSMaybe</span> :: <span class="hljs-keyword">forall</span> (a::<span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>). <span class="hljs-type">SMaybe</span> a -&gt; <span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>
+<span class="hljs-title">fromSMaybe</span> <span class="hljs-type">SNothing</span>  = <span class="hljs-type">Nothing</span>
+<span class="hljs-title">fromSMaybe</span> (<span class="hljs-type">SJust</span> a) = <span class="hljs-type">Just</span> (fromSBool a)
+</div></code></pre>
+<p>同型であることを保証するために <code>toXXX</code>, <code>fromXXX</code> を持つ型クラスに抽象化することは自然。</p>
+<p>また、定義を見ればわかるとおり <code>Bool</code> や <code>Maybe Bool</code> などの昇格する前の型情報も必要となるため、<code>Demote k</code> が追加されている。(この型はそれぞれ異なるため型族になっている)。デフォルト実装は用意できそうにない。</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-type">SingKind</span> k <span class="hljs-keyword">where</span></span>
+  <span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Demote</span> k = r | r -&gt; k</span>
+  toSing   :: <span class="hljs-type">Demote</span> k    -&gt; <span class="hljs-type">SomeSing</span> k
+  fromSing :: <span class="hljs-type">Sing</span> (a::k) -&gt; <span class="hljs-type">Demote</span> k
+</div></code></pre>
+<h2 id="153-singi">15.3 SingI</h2>
+<iframe style="border: none;" width="800" height="450" src="https://www.figma.com/embed?embed_host=share&url=https%3A%2F%2Fwww.figma.com%2Ffile%2FAgquwTzP53l6rMGqvqNRjV%2FCh15%3Fnode-id%3D64%253A2" allowfullscreen></iframe>
+<p><code>SingI</code> は 15.3 で定義されたが、実はまだ利用していない。これは15.4節のための布石である。</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-type">SingI</span> (<span class="hljs-title">a</span>::<span class="hljs-title">k</span>) <span class="hljs-keyword">where</span></span>
+  sing :: <span class="hljs-type">Sing</span> a
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">SingI</span> '<span class="hljs-type">True</span> <span class="hljs-keyword">where</span></span>
+  sing = <span class="hljs-type">STrue</span>
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">SingI</span> '<span class="hljs-type">False</span> <span class="hljs-keyword">where</span></span>
+  sing = <span class="hljs-type">SFalse</span>
+</div></code></pre>
+<p>この型クラスが値を持たない型とシングルトンを繋ぐ。</p>
+<h2 id="%e5%89%8d%e5%8d%8a%e3%81%be%e3%81%a8%e3%82%81">前半まとめ</h2>
+<p>抽象化された定義を使えば以下のようになる。</p>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>型</th>
+<th>Kind</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>True, False</td>
+<td>Bool</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'True</td>
+<td>Bool</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'False</td>
+<td>Bool</td>
+</tr>
+<tr>
+<td>STrue</td>
+<td>Sing 'True</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>SFalse</td>
+<td>Sing 'False</td>
+<td>Type</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>型</th>
+<th>Kind</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nothing, Just True, Just False</td>
+<td>Maybe Bool</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'Nothing</td>
+<td>Maybe a</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'Just 'True</td>
+<td>Maybe Bool</td>
+</tr>
+<tr>
+<td>-</td>
+<td>'Just 'False</td>
+<td>Maybe Bool</td>
+</tr>
+<tr>
+<td>SNothing</td>
+<td>Sing 'Nothing</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>SJust STrue</td>
+<td>Sing ('Just 'True)</td>
+<td>Type</td>
+</tr>
+<tr>
+<td>SJust SFalse</td>
+<td>Sing ('Just 'False)</td>
+<td>Type</td>
+</tr>
+</tbody>
+</table>
+<h2 id="154-singletons-%e3%81%8c%e7%94%9f%e6%88%90%e3%81%99%e3%82%8b%e3%82%82%e3%81%ae">15.4 singletons が生成するもの</h2>
+<ul>
+<li>Haskell のデータ型</li>
+<li>Sing データ型</li>
+<li>SingKind 型クラスのインスタンス</li>
+<li>SIngI 型クラスのインスタンス</li>
+<li>SDecide 型クラスのインスタンス</li>
+</ul>
+<h3 id="154-i">15.4-i</h3>
+<p>間違った定義</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">instance</span> <span class="hljs-type">SDecide</span> a =&gt; <span class="hljs-type">SDecide</span> (<span class="hljs-type">Maybe</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
+  <span class="hljs-type">SNothing</span> %~ <span class="hljs-type">SNothing</span> = <span class="hljs-type">Proved</span> <span class="hljs-type">Refl</span>
+  <span class="hljs-type">SJust</span> a %~ <span class="hljs-type">SJust</span> b = a %~ b
+  _ %~ _ = <span class="hljs-type">Disproved</span> $ const undefined
+</div></code></pre>
+<p><code>a %~ b</code> の結果をそのまま返しても <code>a</code> と <code>b</code> が等しいことが型レベルで記録されるだけで、<code>SJust a</code> と <code>SJust b</code> が正しいということにはならない。</p>
+<p>そのため、正しい定義では、値としては全く同じ <code>Proved Refl</code> を返すことで、異なる型を返すようにしている。</p>
+<p>正しい定義</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">instance</span> <span class="hljs-type">SDecide</span> a =&gt; <span class="hljs-type">SDecide</span> (<span class="hljs-type">Maybe</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
+  <span class="hljs-type">SNothing</span> %~ <span class="hljs-type">SNothing</span> = <span class="hljs-type">Proved</span> <span class="hljs-type">Refl</span>
+  <span class="hljs-type">SJust</span> a %~ <span class="hljs-type">SJust</span> b =
+    <span class="hljs-keyword">case</span> a %~ b <span class="hljs-keyword">of</span>
+      <span class="hljs-type">Proved</span> <span class="hljs-type">Refl</span> -&gt; <span class="hljs-type">Proved</span> <span class="hljs-type">Refl</span>
+      <span class="hljs-type">Disproved</span> _ -&gt; <span class="hljs-type">Disproved</span> $ const undefined
+  _ %~ _ = <span class="hljs-type">Disproved</span> $ const undefined
+</div></code></pre>
+<hr>
+<p>詳しい解説</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-type">SDecide</span> k <span class="hljs-keyword">where</span></span>
+  (%~) :: <span class="hljs-type">SIng</span> (a::k) -&gt; <span class="hljs-type">Sing</span> (b::k) -&gt; <span class="hljs-type">Decision</span> (a :~: b)
+</div></code></pre>
+<p><code>k = Maybe Bool</code> として考えましょう。</p>
+<pre><code class="language-hs"><div>(%~) :: <span class="hljs-type">SIng</span> (a::<span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>) -&gt; <span class="hljs-type">Sing</span> (b::<span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>) -&gt; <span class="hljs-type">Decision</span> (a :~: b)
+</div></code></pre>
+<p>この時 <code>a</code> や <code>b</code> の型というのは以下のどれかになります。また、これらの型はシングルトンなので、対応する値は必ず1つです。</p>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SNothing</code></td>
+<td><code>Sing ('Nothing)</code></td>
+</tr>
+<tr>
+<td><code>SJust STrue</code></td>
+<td><code>Sing ('Just 'True)</code></td>
+</tr>
+<tr>
+<td><code>SJust SFalse</code></td>
+<td><code>Sing ('Just 'False)</code></td>
+</tr>
+</tbody>
+</table>
+<p>誤った定義では何が起きているのでしょうか？</p>
+<pre><code class="language-hs"><div><span class="hljs-class"><span class="hljs-keyword">instance</span> <span class="hljs-type">SDecide</span> (<span class="hljs-type">Maybe</span> <span class="hljs-type">Bool</span>) <span class="hljs-keyword">where</span></span>
+  <span class="hljs-type">SNothing</span> %~ <span class="hljs-type">SNothing</span> = <span class="hljs-type">Proved</span> <span class="hljs-type">Refl</span>
+  <span class="hljs-type">SJust</span> a %~ <span class="hljs-type">SJust</span> b = a %~ b
+  _ %~ _ = <span class="hljs-type">Disproved</span> $ const undefined
+</div></code></pre>
+<p>この時 <code>SJust a</code> と <code>SJust b</code> のそれぞれの <code>a</code>, <code>b</code> の値は上記の表より <code>STrue</code> か <code>SFalse</code> です。</p>
+<p>その値によって再帰的に <code>%~</code> が呼ばれます。結果の値と型は当然、以下の4種類のどれかです。</p>
+<table>
+<thead>
+<tr>
+<th>値</th>
+<th>型</th>
+<th>結果の値と型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>STrue  %~ STrue</code></td>
+<td><code>'True  :~: 'True</code></td>
+<td><code>Proved Refl :: Decision ('True :~: 'True)</code></td>
+</tr>
+<tr>
+<td><code>STrue  %~ SFalse</code></td>
+<td><code>'True  :~: 'False</code></td>
+<td><code>Disproved (const undefined) :: Decision a</code></td>
+</tr>
+<tr>
+<td><code>SFalse %~ STrue</code></td>
+<td><code>'False :~: 'True</code></td>
+<td><code>Disproved (const undefined) :: Decision a</code></td>
+</tr>
+<tr>
+<td><code>SFalse %~ SFalse</code></td>
+<td><code>'False :~: 'False</code></td>
+<td><code>Proved Refl :: Decision ('False :~: 'False)</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-hs"><div>λ&gt; :t <span class="hljs-type">Proved</span> (<span class="hljs-type">Refl</span> :: <span class="hljs-type">True</span> :~: <span class="hljs-type">True</span>)
+<span class="hljs-type">Proved</span> (<span class="hljs-type">Refl</span> :: <span class="hljs-type">True</span> :~: <span class="hljs-type">True</span>) :: <span class="hljs-type">Decision</span> ('<span class="hljs-type">True</span> :~: '<span class="hljs-type">True</span>)
+
+λ&gt; :t <span class="hljs-type">Disproved</span> (const undefined)
+<span class="hljs-type">Disproved</span> (const undefined) :: <span class="hljs-type">Decision</span> b
+</div></code></pre>
+<p>ということは結果として期待している</p>
+<ul>
+<li><code>'SJust 'True :~: 'SJust 'True</code></li>
+<li><code>'SJust 'False :~: 'SJust 'False</code></li>
+<li><code>'SNothing :~: SNothing</code></li>
+</ul>
+<p>のどれにも当てはまらない型が返ってくることになってしまいます。</p>
+<p>このことが原因でコンパイルエラーとなります。</p>
+
+    </body>
+    </html>
